@@ -1,1 +1,1 @@
-window.apiKey = "sk-proj-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+window.apiKey = "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";
