@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Enayet ChessBoard</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: #f4f4f4;
+      color: #333;
+      text-align: center;
+    }
+
+    h1 {
+      margin-top: 20px;
+      color: #222;
+    }
+
+    #controls {
+      margin: 10px;
+    }
+
+    button {
+      margin: 5px;
+      padding: 10px 15px;
+      font-size: 1rem;
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #0056b3;
+    }
+
+    #board {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      max-width: 90vmin;
+      margin: 20px auto;
+      aspect-ratio: 1 / 1;
+      border: 2px solid #444;
+    }
+
+    .cell {
+      width: 100%;
+      height: 100%;
+      font-size: 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .white { background: #eee; }
+    .black { background: #999; }
+
+    .selected {
+      outline: 2px solid red;
+    }
+  </style>
+</head>
+<body>
+  <h1>♟️ Enayet ChessBoard</h1>
+  <div id="controls">
+    <button onclick="startTwoPlayer()">দুই জনে খেলা</button>
+    <button onclick="startVsAI()">AI এর সাথে খেলা</button>
+    <p id="status">চলুন খেলা শুরু করি!</p>
+  </div>
+  <div id="board"></div>
+
+  <script>
+    const board = document.getElementById("board");
+    const statusText = document.getElementById("status");
+    let selected = null;
+    let mode = "2p";
+    let turn = "white";
+    let cells = [];
+
+    const pieces = {
+      white: {
+        r: "♖", n: "♘", b: "♗", q: "♕", k: "♔", p: "♙"
+      },
+      black: {
+        r: "♜", n: "♞", b: "♝", q: "♛", k: "♚", p: "♟"
+      }
+    };
+
+    let boardState = [];
+
+    function initBoard() {
+      board.innerHTML = "";
+      boardState = [];
+      cells = [];
+      const layout = [
+        ["br", "bn", "bb", "bq", "bk", "bb", "bn", "br"],
+        ["bp", "bp", "bp", "bp", "bp", "bp", "bp", "bp"],
+        ["", "", "", "", "", "", "", ""],
+        ["", "", "", "", "", "", "", ""],
+        ["", "", "", "", "", "", "", ""],
+        ["", "", "", "", "", "", "", ""],
+        ["wp", "wp", "wp", "wp", "wp", "wp", "wp", "wp"],
+        ["wr", "wn", "wb", "wq", "wk", "wb", "wn", "wr"]
+      ];
+
+      for (let i = 0; i < 8; i++) {
+        boardState[i] = [];
+        for (let j = 0; j < 8; j++) {
+          const cell = document.createElement("div");
+          cell.className = "cell " + ((i + j) % 2 === 0 ? "white" : "black");
+          const piece = layout[i][j];
+          boardState[i][j] = piece;
+          if (piece) {
+            const color = piece[0] === "w" ? "white" : "black";
+            cell.textContent = pieces[color][piece[1]];
+          }
+          cell.dataset.row = i;
+          cell.dataset.col = j;
+          cell.addEventListener("click", handleClick);
+          board.appendChild(cell);
+          cells.push(cell);
+        }
+      }
+    }
+
+    function handleClick(e) {
+      const row = parseInt(e.target.dataset.row);
+      const col = parseInt(e.target.dataset.col);
+      const piece = boardState[row][col];
+
+      if (selected) {
+        movePiece(selected.row, selected.col, row, col);
+        clearSelection();
+      } else if (piece && piece[0] === turn[0]) {
+        selected = { row, col };
+        e.target.classList.add("selected");
+      }
+    }
+
+    function clearSelection() {
+      selected = null;
+      cells.forEach(cell => cell.classList.remove("selected"));
+    }
+
+    function movePiece(r1, c1, r2, c2) {
+      const piece = boardState[r1][c1];
+      boardState[r2][c2] = piece;
+      boardState[r1][c1] = "";
+      updateUI();
+
+      turn = turn === "white" ? "black" : "white";
+      statusText.textContent = `চাল: ${turn === "white" ? "সাদা" : "কালো"}`;
+
+      if (mode === "ai" && turn === "black") {
+        setTimeout(aiMove, 500);
+      }
+    }
+
+    function updateUI() {
+      for (let i = 0; i < 64; i++) {
+        const cell = cells[i];
+        const row = parseInt(cell.dataset.row);
+        const col = parseInt(cell.dataset.col);
+        const piece = boardState[row][col];
+        cell.textContent = "";
+        if (piece) {
+          const color = piece[0] === "w" ? "white" : "black";
+          cell.textContent = pieces[color][piece[1]];
+        }
+      }
+    }
+
+    function startTwoPlayer() {
+      mode = "2p";
+      turn = "white";
+      statusText.textContent = "চাল: সাদা";
+      initBoard();
+    }
+
+    function startVsAI() {
+      mode = "ai";
+      turn = "white";
+      statusText.textContent = "চাল: আপনি (সাদা)";
+      initBoard();
+    }
+
+    function aiMove() {
+      // Very simple random AI
+      const moves = [];
+
+      for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+          const piece = boardState[r][c];
+          if (piece && piece[0] === "b") {
+            // Try move to all directions 1 step
+            const dirs = [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
+            dirs.forEach(([dr,dc]) => {
+              const nr = r + dr, nc = c + dc;
+              if (nr >=0 && nr<8 && nc>=0 && nc<8) {
+                const dest = boardState[nr][nc];
+                if (!dest || dest[0] === "w") {
+                  moves.push({r1: r, c1: c, r2: nr, c2: nc});
+                }
+              }
+            });
+          }
+        }
+      }
+
+      if (moves.length > 0) {
+        const move = moves[Math.floor(Math.random() * moves.length)];
+        movePiece(move.r1, move.c1, move.r2, move.c2);
+      } else {
+        statusText.textContent = "AI চাল দিতে পারছে না!";
+      }
+    }
+
+    // Initialize by default
+    startTwoPlayer();
+  </script>
+</body>
+</html>
